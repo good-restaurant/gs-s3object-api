@@ -49,6 +49,15 @@ dependencies {
     // mapstruct
     implementation 'org.mapstruct:mapstruct:1.6.2'
     annotationProcessor 'org.mapstruct:mapstruct-processor:1.6.2'
+
+    // Ensure Lombok + MapStruct work together
+    annotationProcessor 'org.projectlombok:lombok-mapstruct-binding:0.2.0'
+
+    // QueryDSL 의존성 추가 (openfeign fork)
+    implementation("io.github.openfeign.querydsl:querydsl-jpa:7.1") {
+        exclude group: "org.hibernate", module: "hibernate-core"
+    }
+    annotationProcessor "io.github.openfeign.querydsl:querydsl-apt:7.1:jpa"
 }
 
 tasks.named('test') {
