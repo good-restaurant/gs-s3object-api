@@ -1,0 +1,62 @@
+name: GitLab Sync
+
+on:
+  push:
+    branches: ['**']
+    tags: ['**']
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      # 러너 IP를 Cloudflare에 임시 허용 (잡 끝나면 자동 제거)
+      - name: Bypass Cloudflare for this job
+        uses: xiaotianxt/bypass-cloudflare-for-github-action@v1.1.0
+        with:
+          cf_zone_id: ${{ secrets.CF_ZONE_ID }}
+          cf_api_token: ${{ secrets.CF_API_TOKEN }}
+
+      - name: Mirror to GitLab (Basic Auth)
+        env:
+          GITLAB_REPO: ${{ secrets.GITLAB_REPOSITORY }}
+          GITLAB_USERNAME: ${{ secrets.GITLAB_USERNAME }}
+          GITLAB_TOKEN: ${{ secrets.MIRRORING_PAT }}   # write_repository 포함
+          GITHUB_REF_TYPE: ${{ github.ref_type }}      # branch | tag
+          GITHUB_REF_NAME: ${{ github.ref_name }}      # 브랜치명 또는 태그명
+        run: |
+            set -euo pipefail
+
+
+            printf '%s' "$GITLAB_TOKEN" | sha256sum
+            
+            BASE_URL="https://lab.i4624.info/"
+            AUTH="$(printf '%s:%s' "$GITLAB_USERNAME" "$GITLAB_TOKEN" | base64 | tr -d '\n')"
+            
+            GIT_ARGS=()
+            GIT_ARGS+=(-c "http.${BASE_URL}.extraheader=Authorization: Basic ${AUTH}")
+            
+            # 연결 확인
+            git "${GIT_ARGS[@]}" ls-remote "$GITLAB_REPO" >/dev/null
+
+            ## global header
+            git config --local --add "http.${GITLAB_REPO}.extraheader" "Authorization: Basic ${AUTH}"
+            
+            # remote 재설정
+            git remote remove gitlab 2>/dev/null || true
+            git remote add gitlab "$GITLAB_REPO"
+            
+            # ✅ 여기에도 헤더 붙이기 (중요!)
+            git "${GIT_ARGS[@]}" fetch gitlab --prune
+            
+            if [ "${GITHUB_REF_TYPE}" = "tag" ]; then
+              TAG="${GITHUB_REF_NAME}"
+              git "${GIT_ARGS[@]}" push gitlab "refs/tags/${TAG}:refs/tags/${TAG}" -o ci.skip --force-with-lease
+            else
+              BR="${GITHUB_REF_NAME}"
+              git "${GIT_ARGS[@]}" push gitlab "${BR}:${BR}" -o ci.skip --force-with-lease
+              git "${GIT_ARGS[@]}" push gitlab --tags -o ci.skip --force-with-lease
+            fi
