@@ -18,5 +18,13 @@ spring:
         show_sql: true
         default_batch_fetch_size: 1000
 
+ceph:
+  s3:
+    endpoint: https://s3storage.i4624.info
+    access-key: ${ACCESS_KEY}
+    secret-key: ${SECRET_KEY}
+    region: us
+    bucket: public-files
+
 server:
   port: 8088

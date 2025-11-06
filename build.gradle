@@ -58,6 +58,10 @@ dependencies {
         exclude group: "org.hibernate", module: "hibernate-core"
     }
     annotationProcessor "io.github.openfeign.querydsl:querydsl-apt:7.1:jpa"
+
+    // s3 호환되는 ceph에도 적용 가능한 sdk
+    implementation("software.amazon.awssdk:s3:2.37.5")
+    implementation("software.amazon.awssdk:url-connection-client:2.37.5")
 }
 
 tasks.named('test') {
