@@ -18,9 +18,9 @@ WORKDIR /app
 COPY --from=builder /workspace/build/libs/*-SNAPSHOT.jar /app/app.jar
 
 HEALTHCHECK --interval=30s --timeout=5s --start-period=30s \
-  CMD sh -c "curl -fsS http://localhost:${SERVER_PORT:-8080}/actuator/health | grep -q '\"status\":\"UP\"' || exit 1"
+  CMD sh -c "curl -fsS http://localhost:${SERVER_PORT:-8088}/actuator/health | grep -q '\"status\":\"UP\"' || exit 1"
 
-EXPOSE 8080
-ENV SERVER_PORT=8080 \
+EXPOSE 8088
+ENV SERVER_PORT=8088 \
     JAVA_TOOL_OPTIONS="-XX:MaxRAMPercentage=75 -XX:+UseZGC"
 ENTRYPOINT ["java","-jar","/app/app.jar"]
