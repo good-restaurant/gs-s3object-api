@@ -1,0 +1,69 @@
+stages: [build, deploy]
+
+# 공통: Docker-in-Docker
+image: docker:27
+services:
+  - name: docker:27-dind
+    alias: docker
+variables:
+  DOCKER_HOST: tcp://docker:2375
+  DOCKER_TLS_CERTDIR: ""
+  DOCKER_BUILDKIT: "1"
+  # 기본 이미지 태그 (커밋 단위)
+  IMAGE_TAG: "$CI_COMMIT_SHORT_SHA"
+
+# 1) 이미지 빌드 + 푸시 (GitLab Registry)
+build-image:
+  stage: build
+  script:
+    # - echo "Login to GitLab Registry: $CI_REGISTRY"
+    - docker login -u "$CI_REGISTRY_USER" -p "$CI_REGISTRY_PASSWORD" "$CI_REGISTRY"
+    - |
+      docker build \
+      -t "$CI_REGISTRY_IMAGE:$IMAGE_TAG" \
+      -t "$CI_REGISTRY_IMAGE:ci-$CI_COMMIT_REF_SLUG" \
+      .
+
+    - docker push "$CI_REGISTRY_IMAGE:$IMAGE_TAG"
+    - docker push "$CI_REGISTRY_IMAGE:ci-$CI_COMMIT_REF_SLUG"
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+    - if: '$CI_COMMIT_BRANCH'  # 모든 브랜치에서 빌드
+
+# 2) 배포: compose로 런타임 변수 주입 + 이미지 태그 override
+deploy:
+  stage: deploy
+  needs: ["build-image"]
+  services: []  # DinD 끔
+  variables:
+    DOCKER_HOST: "unix:///var/run/host_docker.sock"  # 별도로 정의한 host 소켓
+    DOCKER_TLS_CERTDIR: ""
+  before_script:
+    - docker login -u "$CI_REGISTRY_USER" -p "$CI_REGISTRY_PASSWORD" "$CI_REGISTRY"
+
+    # 런타임 env 파일
+    - |
+      printf "DB_URL=%s\nDB_USERNAME=%s\nDB_PASSWORD=%s\nNAVER_GEOCODE_BASE_URL=%s\nNAVER_GEOCODE_CLIENT_ID=%s\nNAVER_GEOCODE_CLIENT_SECRET=%s\n" \
+      "$DB_URL" "$DB_USERNAME" "$DB_PASSWORD" "$NAVER_GEOCODE_BASE_URL" "$NAVER_GEOCODE_CLIENT_ID" "$NAVER_GEOCODE_CLIENT_SECRET" > .env.runtime
+  
+
+  # 이미지 override + build 제거
+    - |
+      cat > compose.ci.yaml <<'YAML'
+      services:
+        app:
+          build: null
+          image: IMAGE_PLACEHOLDER
+          env_file:
+            - .env.runtime
+          environment:
+            SERVER_PORT: "8080"
+      YAML
+    - sed -i "s|IMAGE_PLACEHOLDER|$CI_REGISTRY_IMAGE:$IMAGE_TAG|g" compose.ci.yaml
+
+    - docker compose version
+
+  script:
+    - docker pull "$CI_REGISTRY_IMAGE:$IMAGE_TAG"
+    - docker compose -f docker-compose.yml -f compose.ci.yaml up -d
+    - docker compose ps
