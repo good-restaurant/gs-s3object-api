@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>Ceph S3 Presigned URL 테스트</title>
+    <style>
+        body {
+            font-family: Pretendard, sans-serif;
+            padding: 2rem;
+            background: #f5f5f5;
+        }
+
+        h1 {
+            color: #333;
+        }
+
+        .box {
+            background: #fff;
+            border-radius: 12px;
+            padding: 1.5rem;
+            box-shadow: 0 2px 6px #0001;
+            margin-bottom: 2rem;
+        }
+
+        input[type="file"], input[type="text"] {
+            width: 100%;
+            padding: 8px;
+            margin-top: 0.5rem;
+            margin-bottom: 1rem;
+        }
+
+        button {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 6px;
+            background: #0066ff;
+            color: white;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background: #004ccc;
+        }
+
+        pre {
+            background: #eee;
+            padding: 1rem;
+            border-radius: 8px;
+            white-space: pre-wrap;
+        }
+
+        img {
+            max-width: 100%;
+            margin-top: 1rem;
+            border-radius: 8px;
+        }
+    </style>
+</head>
+<body>
+
+<h1>🧩 Ceph S3 Presigned URL 테스트</h1>
+
+<div class="box">
+    <h2>1️⃣ 파일 업로드 테스트</h2>
+    <label>파일 선택:</label>
+    <input type="file" id="uploadFile"/>
+
+    <label>Presigned PUT URL:</label>
+    <input type="text" id="uploadUrl" placeholder="Swagger에서 받은 presigned PUT URL을 입력"/>
+
+    <button onclick="uploadFile()">업로드 실행</button>
+    <pre id="uploadResult"></pre>
+</div>
+
+<div class="box">
+    <h2>2️⃣ 다운로드 테스트</h2>
+    <label>Presigned GET URL:</label>
+    <input type="text" id="downloadUrl" placeholder="다운로드용 presigned GET URL 입력"/>
+    <button onclick="downloadFile()">다운로드 실행</button>
+    <div id="downloadResult"></div>
+</div>
+
+<script>
+    async function uploadFile() {
+        const fileInput = document.getElementById("uploadFile");
+        const uploadUrl = document.getElementById("uploadUrl").value.trim();
+        const resultBox = document.getElementById("uploadResult");
+
+        if (!fileInput.files.length) {
+            alert("파일을 선택하세요.");
+            return;
+        }
+        if (!uploadUrl) {
+            alert("Presigned URL을 입력하세요.");
+            return;
+        }
+
+        const file = fileInput.files[0];
+        resultBox.textContent = "업로드 중...";
+
+        try {
+            const res = await fetch(uploadUrl, {
+                method: "PUT",
+                headers: {
+                    "Content-Type": file.type || "application/octet-stream"
+                },
+                body: file
+            });
+
+            if (res.ok) {
+                resultBox.textContent = `✅ 업로드 성공! (HTTP ${res.status})\n파일 MIME: ${file.type}\n크기: ${file.size} bytes`;
+            } else {
+                const text = await res.text();
+                resultBox.textContent = `❌ 업로드 실패 (HTTP ${res.status})\n\n${text}`;
+            }
+        } catch (err) {
+            resultBox.textContent = `⚠️ 네트워크 오류: ${err.message}`;
+        }
+    }
+
+    async function downloadFile() {
+        const url = document.getElementById("downloadUrl").value.trim();
+        const result = document.getElementById("downloadResult");
+
+        if (!url) {
+            alert("다운로드 URL을 입력하세요.");
+            return;
+        }
+
+        result.innerHTML = "다운로드 중...";
+        try {
+            const res = await fetch(url);
+            if (!res.ok) {
+                result.textContent = `❌ 다운로드 실패 (HTTP ${res.status})`;
+                return;
+            }
+
+            const blob = await res.blob();
+            const type = blob.type;
+            const blobUrl = URL.createObjectURL(blob);
+
+            if (type.startsWith("image/")) {
+                result.innerHTML = `<p>✅ 다운로드 성공!</p><img src="${blobUrl}" alt="다운로드 이미지" />`;
+            } else {
+                result.innerHTML = `<p>✅ 다운로드 성공! (${type})</p><a href="${blobUrl}" download>📥 파일 저장</a>`;
+            }
+        } catch (err) {
+            result.textContent = `⚠️ 오류: ${err.message}`;
+        }
+    }
+</script>
+
+</body>
+</html>
