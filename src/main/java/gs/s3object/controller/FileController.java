@@ -9,6 +9,8 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.net.URL;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.UUID;
 
 @RestController
@@ -26,6 +28,22 @@ public class FileController {
 		URL url = s3Service.generateUploadUrl(objectKey, contentType, 600);
 		return ResponseEntity.ok(url.toString());
 	}
+	
+	
+	@GetMapping("/presign-upload-json")
+	public ResponseEntity<Map<String, String>> presignUploadjson(
+			@RequestParam String filename,
+			@RequestParam(defaultValue = "image/jpeg") String contentType) {
+		String objectKey = UUID.randomUUID() + "_" + filename;
+		URL url = s3Service.generateUploadUrl(objectKey, contentType, 600);
+		
+		Map<String, String> body = new HashMap<>();
+		body.put("objectKey", objectKey);
+		body.put("url", url.toString());
+		
+		return ResponseEntity.ok(body);
+	}
+	
 	
 	@GetMapping("/presign-download")
 	public ResponseEntity<String> presignDownload(@RequestParam String key) {
