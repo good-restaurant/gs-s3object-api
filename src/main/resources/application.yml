@@ -23,7 +23,7 @@ ceph:
     endpoint: https://s3storage.i4624.info
     access-key: ${ACCESS_KEY}
     secret-key: ${SECRET_KEY}
-    region: us
+    region: default
     bucket: images
 
 server:
