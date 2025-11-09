@@ -49,6 +49,22 @@ dependencies {
     // mapstruct
     implementation 'org.mapstruct:mapstruct:1.6.2'
     annotationProcessor 'org.mapstruct:mapstruct-processor:1.6.2'
+
+    // Ensure Lombok + MapStruct work together
+    annotationProcessor 'org.projectlombok:lombok-mapstruct-binding:0.2.0'
+
+    // QueryDSL 의존성 추가 (openfeign fork)
+    implementation("io.github.openfeign.querydsl:querydsl-jpa:7.1") {
+        exclude group: "org.hibernate", module: "hibernate-core"
+    }
+    annotationProcessor "io.github.openfeign.querydsl:querydsl-apt:7.1:jpa"
+
+    // s3 호환되는 ceph에도 적용 가능한 sdk
+    implementation("software.amazon.awssdk:s3:2.37.5")
+    implementation("software.amazon.awssdk:url-connection-client:2.37.5")
+
+    // Swagger/OpenAPI (springdoc)
+    implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:2.8.14'
 }
 
 tasks.named('test') {
