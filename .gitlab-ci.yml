@@ -43,8 +43,8 @@ deploy:
 
     # 런타임 env 파일
     - |
-      printf "DB_URL=%s\nDB_USERNAME=%s\nDB_PASSWORD=%s\nNAVER_GEOCODE_BASE_URL=%s\nNAVER_GEOCODE_CLIENT_ID=%s\nNAVER_GEOCODE_CLIENT_SECRET=%s\n" \
-      "$DB_URL" "$DB_USERNAME" "$DB_PASSWORD" "$NAVER_GEOCODE_BASE_URL" "$NAVER_GEOCODE_CLIENT_ID" "$NAVER_GEOCODE_CLIENT_SECRET" > .env.runtime
+      printf "DB_URL=%s\nDB_USERNAME=%s\nDB_PASSWORD=%s\nNAVER_GEOCODE_BASE_URL=%s\nNAVER_GEOCODE_CLIENT_ID=%s\nNAVER_GEOCODE_CLIENT_SECRET=%s\nACCESS_KEY=%s\nSECRET_KEY=%s\n" \
+      "$DB_URL" "$DB_USERNAME" "$DB_PASSWORD" "$NAVER_GEOCODE_BASE_URL" "$NAVER_GEOCODE_CLIENT_ID" "$NAVER_GEOCODE_CLIENT_SECRET" "$ACCESS_KEY" "$SECRET_KEY" > .env.runtime
   
 
   # 이미지 override + build 제거
@@ -57,7 +57,7 @@ deploy:
           env_file:
             - .env.runtime
           environment:
-            SERVER_PORT: "8080"
+            SERVER_PORT: "8088"
       YAML
     - sed -i "s|IMAGE_PLACEHOLDER|$CI_REGISTRY_IMAGE:$IMAGE_TAG|g" compose.ci.yaml
 
