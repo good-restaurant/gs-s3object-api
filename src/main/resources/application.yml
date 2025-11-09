@@ -24,7 +24,7 @@ ceph:
     access-key: ${ACCESS_KEY}
     secret-key: ${SECRET_KEY}
     region: us
-    bucket: public-files
+    bucket: images
 
 server:
   port: 8088

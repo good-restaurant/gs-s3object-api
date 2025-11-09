@@ -26,10 +26,14 @@ public class CephS3ServiceImpl implements CephS3Service {
 	private String bucket;
 	
 	public URL generateUploadUrl(String key, String contentType, int expireSeconds) {
+		String safeType = (contentType == null || contentType.isBlank())
+				                  ? "application/octet-stream"
+				                  : contentType;
+		
 		PutObjectRequest putObjectRequest = PutObjectRequest.builder()
 				                                    .bucket(bucket)
 				                                    .key(key)
-				                                    .contentType(contentType)
+				                                    .contentType(safeType)
 				                                    .build();
 		
 		PresignedPutObjectRequest presignedRequest = presigner.presignPutObject(
